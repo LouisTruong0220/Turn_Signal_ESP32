@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Control Panel</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            background-image: url('https://www.usnews.com/object/image/00000191-ba19-d7a3-a99b-fb1951d60001/p90505129-2.jpeg?update-time=1725404107218&size=responsiveGallery'); /* Car interior background */
+            background-size: cover;
+            background-position: center;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        /* Display Box for Angle, Speed, and RPM */
+        .display-box {
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            text-align: center;
+            width: 220px;
+            margin-top: 20px;
+        }
+
+        .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* Functional Control Box at the Bottom */
+        .control-box {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            width: 100%;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 180px;
+            height: 180px;
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            background-image: url('https://iilumolab.com.au/cdn/shop/files/BMW.webp?v=1699759307&width=2048'); /* Replace with your image */
+            background-size: cover;
+            background-position: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: center;
+            transition: transform 0.1s linear;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            text-transform: uppercase;
+        }
+
+        .reset {
+            background-color: red;
+            color: white;
+        }
+
+        .reset:hover {
+            background-color: darkred;
+        }
+
+        .start {
+            background-color: green;
+            color: white;
+        }
+
+        .start:hover {
+            background-color: darkgreen;
+        }
+
+        /* Gear Shift Selector */
+        .gear-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .gear {
+            padding: 10px 12px;
+            font-size: 16px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .gear.active {
+            background-color: orange;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Display Box: Steering Angle, Speed, RPM -->
+    <div class="display-box">
+        <div>Steering Angle: <span class="value" id="angleDisplay">0°</span></div>
+        <div>Speed: <span class="value" id="speed">0</span> km/h</div>
+        <div>RPM: <span class="value" id="rpm">800</span></div>
+        <div>Gear: <span class="value" id="currentGear">P</span></div>
+    </div>
+
+    <!-- Functional Control Box at the Bottom -->
+    <div class="control-box">
+        <!-- Steering Wheel -->
+        <div class="wheel-container">
+            <div class="wheel" id="steeringWheel"></div>
+        </div>
+
+        <!-- Buttons (Start/Reset) -->
+        <div class="buttons">
+            <button class="button reset" onclick="resetWheel()">Reset</button>
+            <button class="button start" onclick="toggleEngine()">Start</button>
+        </div>
+
+        <!-- Gear Shift Selector -->
+        <div class="gear-selector">
+            <button class="gear" onclick="changeGear('P')" id="gearP">P</button>
+            <button class="gear" onclick="changeGear('R')" id="gearR">R</button>
+            <button class="gear" onclick="changeGear('N')" id="gearN">N</button>
+            <button class="gear" onclick="changeGear('D')" id="gearD">D</button>
+        </div>
+    </div>
+
+    <script>
+        var xhttp1 = new XMLHttpRequest();
+
+        let wheel = document.getElementById("steeringWheel");
+        let angleDisplay = document.getElementById("angleDisplay");
+        let speedDisplay = document.getElementById("speed");
+        let rpmDisplay = document.getElementById("rpm");
+        let gearDisplay = document.getElementById("currentGear");
+
+        let startAngle = 0, currentAngle = 0, isDragging = false;
+        let isEngineOn = false;
+        let speed = 0, rpm = 800;
+        let currentGear = 'P';
+
+        wheel.addEventListener("mousedown", startRotation);
+        wheel.addEventListener("touchstart", startRotation);
+
+        function startRotation(event) {
+            isDragging = true;
+            let x = event.clientX || event.touches[0].clientX;
+            let y = event.clientY || event.touches[0].clientY;
+            startAngle = getAngle(x, y) - currentAngle;
+            document.addEventListener("mousemove", rotateWheel);
+            document.addEventListener("mouseup", stopRotation);
+            document.addEventListener("touchmove", rotateWheel);
+            document.addEventListener("touchend", stopRotation);
+        }
+
+        function rotateWheel(event) {
+            if (!isDragging) return;
+            let x = event.clientX || event.touches[0].clientX;
+            let y = event.clientY || event.touches[0].clientY;
+            currentAngle = getAngle(x, y) - startAngle;
+            wheel.style.transform = `rotate(${currentAngle}deg)`;
+            xhttp1.open("POST", "/wheel", true);
+            xhttp1.send(Math.round(currentAngle));
+            angleDisplay.innerText = `${Math.round(currentAngle)}°`;
+        }
+
+        function stopRotation() {
+            isDragging = false;
+            document.removeEventListener("mousemove", rotateWheel);
+            document.removeEventListener("mouseup", stopRotation);
+            document.removeEventListener("touchmove", rotateWheel);
+            document.removeEventListener("touchend", stopRotation);
+            sendToESP32(Math.round(currentAngle));
+        }
+
+        function getAngle(x, y) {
+            let rect = wheel.getBoundingClientRect();
+            let centerX = rect.left + rect.width / 2;
+            let centerY = rect.top + rect.height / 2;
+            return Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
+        }
+
+        function resetWheel() {
+            currentAngle = 0;
+            wheel.style.transform = "rotate(0deg)";
+            xhttp1.open("POST", "/wheel", true);
+            xhttp1.send(Math.round(currentAngle));
+            angleDisplay.innerText = "0°";
+            sendToESP32(0);
+        }
+
+        function toggleEngine() {
+            isEngineOn = !isEngineOn;
+            speed = isEngineOn ? 5 : 0;
+            rpm = isEngineOn ? 1500 : 800;
+            updateDashboard();
+        }
+
+        function changeGear(gear) {
+            document.querySelectorAll(".gear").forEach(btn => btn.classList.remove("active"));
+            document.getElementById("gear" + gear).classList.add("active");
+            currentGear = gear;
+            gearDisplay.innerText = gear;
+        }
+
+        function updateDashboard() {
+            speedDisplay.innerText = speed;
+            rpmDisplay.innerText = rpm;
+        }
+
+        function sendToESP32(angle) {
+            fetch(`http://YOUR_ESP32_IP/steering?angle=${angle}`)
+                .then(response => console.log("Sent:", angle))
+                .catch(error => console.error("Error:", error));
+        }
+    </script>
+
+</body>
+</html>

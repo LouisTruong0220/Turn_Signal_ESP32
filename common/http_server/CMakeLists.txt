@@ -1,0 +1,10 @@
+set(app_src http_server_app.c)
+set(pri_req )
+idf_component_register(SRCS ${app_src}
+                    INCLUDE_DIRS "."
+                    REQUIRES driver
+                    PRIV_REQUIRES esp_netif
+                    PRIV_REQUIRES esp_http_server
+                    PRIV_REQUIRES esp_wifi
+                    PRIV_REQUIRES esp_eth
+                    REQUIRES ${pri_req})
